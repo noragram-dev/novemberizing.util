@@ -2,9 +2,11 @@ package novemberizing.util;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.Expose;
 import novemberizing.util.impl.ConsoleLog;
 
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Locale;
 
@@ -15,21 +17,70 @@ import java.util.Locale;
  */
 @SuppressWarnings("unused, WeakerAccess, SameParameterValue")
 public class Log {
-    public static <T> String toJson(T o){
+    private static class List {
+        @Expose private LinkedList<Object> objects = new LinkedList<>();
+
+        public List(Object o, Object... objects){
+            this.objects.add((o instanceof Throwable) ? new Exception((Throwable) o) : o);
+            for(Object object : objects){
+                this.objects.add((object instanceof Throwable) ? new Exception((Throwable) object) : object);
+            }
+        }
+
+        public List(Object[] objects){
+            for(Object object : objects){
+                this.objects.add((object instanceof Throwable) ? new Exception((Throwable) object) : object);
+            }
+        }
+    }
+
+    public static String toJson(Object o) {
+        o = (o instanceof Throwable) ? new Exception((Throwable) o) : o;
         GsonBuilder builder = new GsonBuilder().excludeFieldsWithoutExposeAnnotation();
         Gson gson = builder.create();
         return gson.toJson(o);
     }
 
-    public static String toJson(String name, Object o){
+    public static String toJson(Object o, Object... objects) {
         GsonBuilder builder = new GsonBuilder().excludeFieldsWithoutExposeAnnotation();
         Gson gson = builder.create();
-        String json = gson.toJson(o);
-        return String.format(Locale.US, "{ \"%s\": %s }",name,json!=null && json.length()>0 ? json : "null");
+        return gson.toJson(new List(o,objects));
     }
 
-    public static String toJson(Object o,Gson gson){
-        return gson.toJson(o);
+    public static String toJson(Object[] o) {
+        GsonBuilder builder = new GsonBuilder().excludeFieldsWithoutExposeAnnotation();
+        Gson gson = builder.create();
+        return gson.toJson(new List(o));
+    }
+
+    private static class Stack {
+        @Expose private String c;
+        @Expose private String method;
+        @Expose private String file;
+        @Expose private int line;
+        @Expose private boolean __native;
+
+        public Stack(StackTraceElement e){
+            c = e.getClassName();
+            method = e.getMethodName();
+            file = e.getFileName();
+            line = e.getLineNumber();
+            __native = e.isNativeMethod();
+        }
+    }
+
+    private static class Exception {
+        private Throwable __exception;
+        @Expose private LinkedList<Stack> __stack = new LinkedList<>();
+        @Expose private String msg;
+
+        public Exception(Throwable e){
+            __exception = e;
+            for(StackTraceElement element : __exception.getStackTrace()){
+                __stack.add(new Stack(element));
+            }
+            msg = __exception.getMessage();
+        }
     }
 
     private static Log __o = new Log();
@@ -45,41 +96,42 @@ public class Log {
     public static final int TAG         = 0x00000001 <<  29;
     public static final int HEADER      = 0x00000001 <<  30;
 
-    public static Object e(String tag, Object o){ __o.___write(ERROR,tag,toJson(o),null); return o; }
-    public static Object w(String tag, Object o){ __o.___write(WARNING,tag,toJson(o),null); return o; }
-    public static Object c(String tag, Object o){ __o.___write(CAUTION,tag,toJson(o),null); return o; }
-    public static Object n(String tag, Object o){ __o.___write(NOTICE,tag,toJson(o),null); return o; }
-    public static Object i(String tag, Object o){ __o.___write(INFORMATION,tag,toJson(o),null); return o; }
-    public static Object d(String tag, Object o){ __o.___write(DEBUG,tag,toJson(o),null); return o; }
-    public static Object f(String tag, Object o){ __o.___write(FLOW,tag,toJson(o),null); return o; }
-    public static Object v(String tag, Object o){ __o.___write(VERBOSE,tag,toJson(o),null); return o; }
 
-    public static Object e(String tag, Object o, Throwable e){ __o.___write(ERROR,tag,toJson(o),e); return o; }
-    public static Object w(String tag, Object o, Throwable e){ __o.___write(WARNING,tag,toJson(o),e); return o; }
-    public static Object c(String tag, Object o, Throwable e){ __o.___write(CAUTION,tag,toJson(o),e); return o; }
-    public static Object n(String tag, Object o, Throwable e){ __o.___write(NOTICE,tag,toJson(o),e); return o; }
-    public static Object i(String tag, Object o, Throwable e){ __o.___write(INFORMATION,tag,toJson(o),e); return o; }
-    public static Object d(String tag, Object o, Throwable e){ __o.___write(DEBUG,tag,toJson(o),e); return o; }
-    public static Object f(String tag, Object o, Throwable e){ __o.___write(FLOW,tag,toJson(o),e); return o; }
-    public static Object v(String tag, Object o, Throwable e){ __o.___write(VERBOSE,tag,toJson(o),e); return o; }
+    public static Object e(String tag, Object o){ __o.___write(ERROR,tag,toJson(o)); return o; }
+    public static Object w(String tag, Object o){ __o.___write(WARNING,tag,toJson(o)); return o; }
+    public static Object c(String tag, Object o){ __o.___write(CAUTION,tag,toJson(o)); return o; }
+    public static Object n(String tag, Object o){ __o.___write(NOTICE,tag,toJson(o)); return o; }
+    public static Object i(String tag, Object o){ __o.___write(INFORMATION,tag,toJson(o)); return o; }
+    public static Object d(String tag, Object o){ __o.___write(DEBUG,tag,toJson(o)); return o; }
+    public static Object f(String tag, Object o){ __o.___write(FLOW,tag,toJson(o)); return o; }
+    public static Object v(String tag, Object o){ __o.___write(VERBOSE,tag,toJson(o)); return o; }
 
-    public static String e(String tag, String msg){ __o.___write(ERROR,tag,msg,null); return msg; }
-    public static String w(String tag, String msg){ __o.___write(WARNING,tag,msg,null); return msg; }
-    public static String c(String tag, String msg){ __o.___write(CAUTION,tag,msg,null); return msg; }
-    public static String n(String tag, String msg){ __o.___write(NOTICE,tag,msg,null); return msg; }
-    public static String i(String tag, String msg){ __o.___write(INFORMATION,tag,msg,null); return msg; }
-    public static String d(String tag, String msg){ __o.___write(DEBUG,tag,msg,null); return msg; }
-    public static String f(String tag, String msg){ __o.___write(FLOW,tag,msg,null); return msg; }
-    public static String v(String tag, String msg){ __o.___write(VERBOSE,tag,msg,null); return msg; }
+    public static Object e(String tag, Object o, Object... objects){ __o.___write(ERROR,tag,toJson(o,objects)); return o; }
+    public static Object w(String tag, Object o, Object... objects){ __o.___write(WARNING,tag,toJson(o,objects)); return o; }
+    public static Object c(String tag, Object o, Object... objects){ __o.___write(CAUTION,tag,toJson(o,objects)); return o; }
+    public static Object n(String tag, Object o, Object... objects){ __o.___write(NOTICE,tag,toJson(o,objects)); return o; }
+    public static Object i(String tag, Object o, Object... objects){ __o.___write(INFORMATION,tag,toJson(o,objects)); return o; }
+    public static Object d(String tag, Object o, Object... objects){ __o.___write(DEBUG,tag,toJson(o,objects)); return o; }
+    public static Object f(String tag, Object o, Object... objects){ __o.___write(FLOW,tag,toJson(o,objects)); return o; }
+    public static Object v(String tag, Object o, Object... objects){ __o.___write(VERBOSE,tag,toJson(o,objects)); return o; }
 
-    public static String e(String tag, String msg, Throwable e){ __o.___write(ERROR,tag,msg,e); return msg; }
-    public static String w(String tag, String msg, Throwable e){ __o.___write(WARNING,tag,msg,e); return msg; }
-    public static String c(String tag, String msg, Throwable e){ __o.___write(CAUTION,tag,msg,e); return msg; }
-    public static String n(String tag, String msg, Throwable e){ __o.___write(NOTICE,tag,msg,e); return msg; }
-    public static String i(String tag, String msg, Throwable e){ __o.___write(INFORMATION,tag,msg,e); return msg; }
-    public static String d(String tag, String msg, Throwable e){ __o.___write(DEBUG,tag,msg,e); return msg; }
-    public static String f(String tag, String msg, Throwable e){ __o.___write(FLOW,tag,msg,e); return msg; }
-    public static String v(String tag, String msg, Throwable e){ __o.___write(VERBOSE,tag,msg,e); return msg; }
+    public static Object e(String tag, Object[] objects){ __o.___write(ERROR,tag,toJson(objects)); return objects[0]; }
+    public static Object w(String tag, Object[] objects){ __o.___write(WARNING,tag,toJson(objects)); return objects[0]; }
+    public static Object c(String tag, Object[] objects){ __o.___write(CAUTION,tag,toJson(objects)); return objects[0]; }
+    public static Object n(String tag, Object[] objects){ __o.___write(NOTICE,tag,toJson(objects)); return objects[0]; }
+    public static Object i(String tag, Object[] objects){ __o.___write(INFORMATION,tag,toJson(objects)); return objects[0]; }
+    public static Object d(String tag, Object[] objects){ __o.___write(DEBUG,tag,toJson(objects)); return objects[0]; }
+    public static Object f(String tag, Object[] objects){ __o.___write(FLOW,tag,toJson(objects)); return objects[0]; }
+    public static Object v(String tag, Object[] objects){ __o.___write(VERBOSE,tag,toJson(objects)); return objects[0]; }
+
+    public static String e(String tag, String o){ __o.___write(ERROR,tag, o); return o; }
+    public static String w(String tag, String o){ __o.___write(WARNING,tag, o); return o; }
+    public static String c(String tag, String o){ __o.___write(CAUTION,tag, o); return o; }
+    public static String n(String tag, String o){ __o.___write(NOTICE,tag, o); return o; }
+    public static String i(String tag, String o){ __o.___write(INFORMATION,tag, o); return o; }
+    public static String d(String tag, String o){ __o.___write(DEBUG,tag, o); return o; }
+    public static String f(String tag, String o){ __o.___write(FLOW,tag, o); return o; }
+    public static String v(String tag, String o){ __o.___write(VERBOSE,tag, o); return o; }
 
     private static String ___str(int type){
         switch(type){
@@ -113,7 +165,7 @@ public class Log {
                 e.getMethodName());
     }
 
-    private void ___write(int type, String tag, String message, Throwable e){
+    private void ___write(int type, String tag, String message){
         if((__types & type)==type)
         {
             if((__types & TAG)!=TAG) {
@@ -124,7 +176,7 @@ public class Log {
                 Calendar calendar = Calendar.getInstance();
 
                 String str = String.format(Locale.getDefault(),
-                        "[%04d/%02d/%02d %02d:%02d:%02d.%03d] %s %s:%d:%s %s %s%s",
+                        "[%04d/%02d/%02d %02d:%02d:%02d.%03d] %s %s:%d:%s %s %s",
                         calendar.get(Calendar.YEAR),
                         calendar.get(Calendar.MONTH),
                         calendar.get(Calendar.DAY_OF_MONTH),
@@ -137,8 +189,7 @@ public class Log {
                         Thread.currentThread().getId(),
                         Thread.currentThread().getName(),
                         tag,
-                        message,
-                        e != null ? " exception: " + ___str(e.getStackTrace()[0]) + " " + e.getMessage() : "");
+                        message);
                 if(__loggers.size()>0) {
                     for (Logger o : __loggers) {
                         o.write(type, tag, str);
