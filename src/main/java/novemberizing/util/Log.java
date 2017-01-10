@@ -114,7 +114,7 @@ public class Log {
     }
 
     private void ___write(int type, String tag, String message, Throwable e){
-        if(__loggers.size()>0 && (__types & type)==type)
+        if((__types & type)==type)
         {
             if((__types & TAG)!=TAG) {
                 tag = "";
